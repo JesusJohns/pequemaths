@@ -11,6 +11,7 @@ export type UserProfile = {
   role: UserRole;
   createdAt: string;
   updatedAt: string | null;
+  picture?: string | null;
 };
 
 const USERS_COLLECTION = "users";
@@ -99,6 +100,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       uid: doc.id,
       email: data?.email || "",
       displayName: data?.displayName || null,
+      picture: data?.picture || null,
       role: (data?.role as UserRole) || "usuario",
       createdAt: data?.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
       updatedAt: data?.updatedAt?.toDate?.()?.toISOString() || null,
