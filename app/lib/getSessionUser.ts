@@ -19,16 +19,11 @@ import { adminAuth } from "./firebase-admin";
  * Retorno:
  * - User object: { uid, email, name, picture }
  * - null: si no hay sesión o la validación falla.
- *
- * Casos de fallo:
- * - No existe cookie __session → devuelve null.
- * - Cookie expirado → verifySessionCookie() lanza error → capturado y devuelve null.
- * - Cookie alterado → verifySessionCookie() rechaza → devuelve null.
- * - Firebase Admin no configurado → error capturado → devuelve null.
  */
 export async function getSessionUser() {
   try {
     // Paso 1: Obtener el almacén de cookies desde el header de la petición
+    // CORRECCIÓN: cookies() devuelve una promesa en App Router
     const cookieStore = await cookies();
     
     // Paso 2: Leer el cookie específico `__session`
@@ -48,7 +43,7 @@ export async function getSessionUser() {
     return {
       uid: decoded.uid,
       email: decoded.email ?? "",
-      name: decoded.name ?? "",
+      name: decoded.name ?? decoded.displayName ?? "",
       picture: decoded.picture ?? "",
     };
   } catch (err) {

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-// Tipo de usuario que se espera recibir como props
 type User = {
   uid: string;
   email: string;
@@ -12,46 +11,14 @@ type User = {
   picture?: string;
 };
 
-// Componente Cliente: ProfileClient
-// Descripción:
-// - Componente React cliente (con "use client") que renderiza el formulario de edición de perfil.
-// - Gestiona estado local: nombre, foto, loading, mensajes de estado.
-// - Permite editar nombre y URL de foto de perfil.
-// - Incluye funcionalidad de logout (con modal de confirmación).
-//
-// Props recibidos:
-// - `user`: objeto User con uid, email, name, picture del perfil a mostrar/editar.
-// - `editableUid` (opcional): si está presente, indica que se está editando otro perfil (admin).
-//   En ese caso, se incluye en la petición POST para que el servidor verifique permisos.
-// - `isAdminView` (opcional): bandera que indica si se está en modo admin.
-//
-// Flujo de edición:
-// 1) Usuario modifica campos (nombre, URL de foto).
-// 2) Click en "Guardar cambios" → onSubmit().
-// 3) onSubmit() valida que nombre no esté vacío.
-// 4) Envía POST a /api/profile con { name, picture, [uid si admin] }.
-// 5) Servidor valida sesión y permisos antes de actualizar Firebase.
-// 6) Muestra mensaje de éxito o error en la UI.
-
-export default function ProfileClient({ user, editableUid, isAdminView }: { user: User; editableUid?: string; isAdminView?: boolean }) {
+export default function ProfileClient({ user }: { user: User }) {
   const router = useRouter();
-  
-  // Debug log en el cliente para diagnosticar qué datos se cargaron
-  console.log("[ProfileClient] Loaded with user:", { uid: user?.uid, name: user?.name, hasEditableUid: !!editableUid, isAdminView });
-  
-  // Estado del componente
   const [name, setName] = useState(user.name ?? "");
   const [picture, setPicture] = useState(user.picture ?? "");
   const [status, setStatus] = useState<null | { ok: boolean; msg?: string }>(null);
   const [loading, setLoading] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // onSubmit:
-  // - Manejador del formulario de edición de perfil.
-  // - Valida que el nombre no esté vacío.
-  // - Construye el body con name, picture y opcionalmente uid si es admin.
-  // - Envía POST a /api/profile.
-  // - Muestra mensaje de éxito o error basado en la respuesta.
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     
@@ -64,16 +31,10 @@ export default function ProfileClient({ user, editableUid, isAdminView }: { user
     setStatus(null);
 
     try {
-      // Construye el body para la petición
-      const body: Record<string, unknown> = { name, picture };
-      // Si se está editando otro perfil (admin), incluye el uid objetivo
-      // para que el servidor verifique permisos
-      if (editableUid) body.uid = editableUid;
-
       const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ name, picture }),
       });
 
       const data = await res.json();
@@ -89,9 +50,6 @@ export default function ProfileClient({ user, editableUid, isAdminView }: { user
     }
   }
 
-  // handleLogout:
-  // - Envía petición POST a /api/sessionLogout para destruir el cookie de sesión.
-  // - Si tiene éxito, redirige a la página principal.
   async function handleLogout() {
     try {
       const res = await fetch("/api/sessionLogout", { method: "POST" });
@@ -104,20 +62,8 @@ export default function ProfileClient({ user, editableUid, isAdminView }: { user
     }
   }
 
-  // Notas de seguridad:
-  // - Este componente es cliente y CONFÍA en que props.user viene del servidor.
-  // - El servidor (profile/page.tsx) ya validó que user es el actual o admin lo autoriza.
-  // - La API /api/profile vuelve a validar sesión y permisos en el servidor ANTES de guardar.
-  // - Si se intenta editar otro perfil sin ser admin, la API rechaza con 403.
-
-
   return (
     <div className="space-y-8">
-      {isAdminView && (
-        <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md p-2 text-center">
-          Modo administrador: editando perfil de <strong>{editableUid ?? user.uid}</strong>
-        </div>
-      )}
       {/* Sección de Foto de Perfil */}
       <div className="flex flex-col items-center">
         <div className="relative mb-6">
@@ -170,7 +116,7 @@ export default function ProfileClient({ user, editableUid, isAdminView }: { user
 
         {/* URL de Foto */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">🖼 URL de foto de perfil</label>
+          <label className="block text-sm font-bold text-gray-700 mb-2">🖼️ URL de foto de perfil</label>
           <input
             type="url"
             value={picture}
@@ -192,9 +138,7 @@ export default function ProfileClient({ user, editableUid, isAdminView }: { user
 
         {/* Mensaje de estado */}
         {status && (
-          <div
-            className={`p-3 rounded-lg text-center font-semibold ${status.ok ? 'bg-green-100 text-green-700 border-2 border-green-300' : 'bg-red-100 text-red-700 border-2 border-red-300'}`}
-          >
+          <div className={`p-3 rounded-lg text-center font-semibold ${status.ok ? "bg-green-100 text-green-700 border-2 border-green-300" : "bg-red-100 text-red-700 border-2 border-red-300"}`}>
             {status.msg}
           </div>
         )}
@@ -215,7 +159,7 @@ export default function ProfileClient({ user, editableUid, isAdminView }: { user
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 max-w-sm shadow-2xl animate-scale-in">
-            <div className="text-5xl mb-4 text-center">⚠</div>
+            <div className="text-5xl mb-4 text-center">⚠️</div>
             <h2 className="text-2xl font-bold text-center mb-4 text-gray-800">¿Cerrar sesión?</h2>
             <p className="text-gray-600 text-center mb-6">¿Estás seguro de que quieres cerrar tu sesión?</p>
             <div className="flex gap-3">
